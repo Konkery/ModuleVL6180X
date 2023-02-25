@@ -11,22 +11,27 @@ class ClassVL6180X extends ClassVL6180XDefault {
 };
 
 ClassVL6180X.prototype.startDualMeasures = function(){
+    let timeOnAmb;
+    let timeOnRange;
     setInterval(() => {
         this.ambient((err, value) => {
             if (err) {
 
             } else {
-                console.log(`${value} lux`)
+                console.log(`${value} lux`);
+                timeOnAmb = getTime();
             }
         });
     }, 300);
     setTimeout(() => {
         setInterval(() => {
-            this.range((er, val) => {
-                if (er) {
+            this.range((err, value) => {
+                if (err) {
 
                 } else {
-                    console.log(`${val} mm`)
+                    // console.log(`${value} mm`);
+                    timeOnRange = getTime();
+                    console.log(timeOnRange-timeOnAmb);
                 }
             });
         }, 300);
