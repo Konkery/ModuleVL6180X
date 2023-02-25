@@ -10,10 +10,6 @@ class ClassVL6180X extends ClassVL6180XDefault {
   }
 };
 
-ClassVL6180X.prototype.testMethod = function(){
-  return true;
-};
-
 ClassVL6180X.prototype.startDualMeasures = function(){
     setInterval(() => {
         this.ambient((err, value) => {
