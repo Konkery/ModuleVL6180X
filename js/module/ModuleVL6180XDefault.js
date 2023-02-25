@@ -69,7 +69,7 @@ var regAddr = {
     FIRMWARE__RESULT_SCALER: 0x120,
     I2C_SLAVE__DEVICE_ADDRESS: 0x212,
     INTERLEAVED_MODE__ENABLE: 0x2a3
-  };
+};
   
   var VL6180X = function(opts) {
     opts = opts || {};
@@ -324,9 +324,8 @@ var regAddr = {
     this._waitForALSCallback = callback;
   };
   
-  exports.connect = function(opts) {
-    return new VL6180X(opts);
-  };
+  // Экспорт самого класса
+  exports._class = VL6180X; 
   
   exports.registers = function() {
     return regAddr;
