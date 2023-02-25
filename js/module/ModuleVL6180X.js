@@ -1,5 +1,5 @@
 const ClassVL6180XDefault = require('ModuleVL6180XDefault')._class;
-const ClassAppError = require('https://raw.githubusercontent.com/Konkery/ModuleAppError/main/js/module/ModuleAppError.js');
+// const ClassAppError = require('https://raw.githubusercontent.com/Konkery/ModuleAppError/main/js/module/ModuleAppError.js');
 
 class ClassVL6180X extends ClassVL6180XDefault {
   //_opts: {i2c: I2C1, irqPin: irqPin}
@@ -16,14 +16,25 @@ ClassVL6180X.prototype.testMethod = function(){
 
 ClassVL6180X.prototype.startDualMeasures = function(){
     setInterval(() => {
-        this.range((err, value) => {
+        this.ambient((err, value) => {
             if (err) {
-                console.log(Infinity);
+
             } else {
-                console.log(value);
+                console.log(`${value} lux`)
             }
         });
-    }, 40);
+    }, 300);
+    setTimeout(() => {
+        setInterval(() => {
+            this.range((er, val) => {
+                if (er) {
+
+                } else {
+                    console.log(`${val} mm`)
+                }
+            });
+        }, 300);
+    }, 150);
 };
 
 exports = ClassVL6180X;
