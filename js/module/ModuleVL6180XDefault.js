@@ -324,12 +324,13 @@ var regAddr = {
     this._waitForALSCallback = callback;
   };
   
+//   exports.registers = function() {
+//     return regAddr;
+//   };
   // Экспорт самого класса
-  exports._class = VL6180X; 
-  
-  exports.registers = function() {
-    return regAddr;
-  };
+//   exports._class = VL6180X; 
+  exports = { ClassVL6180XDefault:    VL6180X,
+              registers:  regAddr };
   
   // // // TODO
   // // Starts continuous ranging measurements with the given period in ms
