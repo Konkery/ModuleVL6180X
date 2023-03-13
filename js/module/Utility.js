@@ -25,7 +25,6 @@ class ClassChain {
         this.tail = null;
         this.count = 0;
     }
-
     /**
      * @method добавляет асинхронную функцию в цепочку вызовов
      * @param {*} fn 
@@ -44,7 +43,6 @@ class ClassChain {
         this.count++;
         return this;
     }
-
     /**
      * @method запускает цепочку вызовов
      */
@@ -63,7 +61,6 @@ class ClassChain {
         } 
     }
 }
-
 exports = { ClassChain : ClassChain };
 
 
