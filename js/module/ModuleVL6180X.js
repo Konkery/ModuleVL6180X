@@ -1,32 +1,44 @@
-// const ClassVL6180XDefault = require('ModuleVL6180XDefault').VL6180X;
-
+/**
+ * @typedef  {Object} ObjectVL6180XParam - тип аргумента метода AddBus
+ * @property {Object} i2c         1 - I2C шина
+ * @property {Object} irqPin      2 - пин прерывания
+ * Пример объекта с аргументами для генерации объекта:
+ * {i2c:I2C1, irqPin:P4}
+ */
 /**
  * @class
- * Класс ClassVL6180X реализует логику работы датчика расстояния и освещенности VL6180X
+ * Основной класс для работы с датчиком
  */
 class ClassVL6180X {
     /**
      * @constructor
-     * @param {{i2c, irqPin}} _opt - объект с полями i2c и irqPin
+     * @param {ObjectVL6180XParam} _opt 
      */
     constructor(_opt) {
-        this.name = 'ClassVL6180X';
+        if ((!_opt)                         ||
+            (!(_opt.i2c instanceof I2C))    ||
+            (!(_opt.irqPin instanceof Pin))) {
+            throw new err(ClassVL6180X.ERROR_MSG_ARG_VALUE,
+                ClassVL6180X.ERROR_CODE_ARG_VALUE);
+        }
+        this.name = 'VL6180X';
+        this._vl6180x = new ClassVL6180XInner(_opt);
+        this._rangeInterface = new ClassVL6180XRange(this);
+        this._ALSInterface = new ClassVL6180XALS(this);
 
-        if (_opt === undefined) {
-            throw new err(ClassVL6180X.ERROR_MSG_ARG_VALUE,
-                          ClassVL6180X.ERROR_CODE_ARG_VALUE);
-        }
-        if (!(_opt.i2c instanceof I2C)) {
-            throw new err(ClassVL6180X.ERROR_MSG_ARG_VALUE,
-                          ClassVL6180X.ERROR_CODE_ARG_VALUE);
-        }
-        if (!(_opt.irqPin instanceof Pin)) {
-            throw new err(ClassVL6180X.ERROR_MSG_ARG_VALUE,
-                          ClassVL6180X.ERROR_CODE_ARG_VALUE);
-        }
-        this._vl6180x = new ClassVL6180XDefault(_opt);
+        setWatch(this._handleIrq.bind(this), _opt.irqPin, {
+            repeat: true,
+            edge: 'rising'
+        });
     }
+
     /*******************************************CONST********************************************/
+    /**
+     *@const
+     *@type {String}
+     *возвращает имя модуля
+     */
+    static get NAME() { return 'VL6180X' };
     /**
      * @const
      * @type {number}
@@ -40,52 +52,141 @@ class ClassVL6180X {
      * Константа ERROR_MSG_ARG_VALUE определяет сообщение ошибки, которая может произойти
      * в случае передачи в конструктор не валидных данных
      */
-    static get ERROR_MSG_ARG_VALUE() { return `ERROR>> invalid data. ClassID: ${this.name}`; }
+    static get ERROR_MSG_ARG_VALUE() { return `ERROR>> invalid data. ClassID: ${this.NAME}`; }
     /*******************************************END CONST****************************************/
+    _handleIrq() {
+        // console.log('main handleIrq');
+        if (this._ALSInterface._waitForALS) {
+            this._ALSInterface._handleIrq();
+        } else if (this._rangeInterface._waitForRange) {
+            this._rangeInterface._handleIrq();
+        }
+    }
     /**
-     * @method в течение заданного времени с указанным интервалом выполняются парные замеры уровня освещенности и расстояния
-     * 
-     * @param {Number} _interval - интервал между выполнением замеров [250 <= x]
-     * @param {Number} _duration - общая продолжительность выполнения команды в секундах [default = Infinity]
+     * @method 
+     * внутренний геттер значения расстояния
      */
-    startDualMeasures(_interval, _duration) {
-        let interval = _interval && 
-                       _interval >= 250 ? _interval : 250;
-        let duration = _duration ? _duration : Infinity;
+    get getRange() { return this._rangeInterface._range; }
+    /**
+     * @method 
+     * внутренний геттер значения освещенности
+     */
+    get getALS() { return this._ALSInterface._ALS; }
 
-        let timeOnAmb;
-        let timeOnRange;
-
-        let time_start = getTime();
-
-        const amb_interval = setInterval(() => {
-            this._vl6180x.ambient((error, value) => {
-                if (error) {
-                    console.log(error);
-                } else {
-                    console.log(`${value} lux`);
-                    // timeOnAmb = getTime();
-                }
-            });
-        }, interval);
-        setTimeout(() => {
-            const range_iterval = setInterval(() => {
-                this._vl6180x.range((error, value) => {
-                    if (error) {
-                        console.log(Infinity);
-                    } else {
-                        console.log(`${value} mm`);
-                        // timeOnRange = getTime();
-                        // console.log(timeOnRange-timeOnAmb);
-
-                        if (getTime() - time_start >= duration) {
-                            clearInterval(range_iterval);
-                            clearInterval(amb_interval);
-                        }
-                    }
-                });
-            }, interval);
-        }, interval/2);
+    launch() {
+        let total_interv = 200;
+        let als_interv = 120;
+        let range_interv = 30;
+        setInterval(() => {
+            // this._rangeInterface.updateRange();
+            this._ALSInterface.updateALS();
+            setTimeout(() => {
+                this._rangeInterface.updateRange();
+            }, als_interv);
+        }, total_interv);
     }
 }
-exports = { ClassVL6180X: ClassVL6180X };
+
+class ClassVL6180XRange {
+    /**
+     * @constructor
+     * @param {ClassVL6180X} self
+     */
+    constructor(_self) {
+        this.self = _self;
+        this._rangeValue = 0;
+        this._waitForRange = false;
+    }
+    /**
+     * @method
+     * функция-обработчик прерывания под измерение расстояния
+     */
+    _handleIrq() {
+        // console.log('range handleIrq');
+        if (this._waitForRange) {
+            this._waitForRange = false;
+            let range = this.self._vl6180x._read8bit(regAddr.RESULT__RANGE_VAL);
+            this.self._vl6180x._write8bit(regAddr.SYSTEM__INTERRUPT_CLEAR, 0x01);
+            if (range === 255) {
+                this._range = Infinity;
+            } else {
+                this._range = range;
+            }  
+        }
+    }
+    /**
+     * @method 
+     * Метод запускает процесс измерения расстояния, результат которого потом будет обработан и записан в _range
+     */
+    updateRange() {
+        if (this._waitForRange) {
+            return;
+        }
+        this.self._vl6180x._write8bit(regAddr.SYSRANGE__START, 0x01);
+        this.self._vl6180x._write8bit(regAddr.SYSTEM__INTERRUPT_CLEAR, 0x01);
+        this._waitForRange = true;
+    }
+    /**
+     * @method
+     * 
+     * @param {Number} value
+     */
+    set _range(value) {
+        this._rangeValue = value;
+    }
+    get _range() { return this._rangeValue; }
+}
+
+class ClassVL6180XALS {
+    /**
+     * @constructor
+     * @param {ClassVL6180X} self
+     */
+    constructor(_self) {
+        this.self = _self;
+        this._ALSValue = 0;
+        this._waitForALS = false;
+    }
+    /**
+     * @method
+     * функция-обработчик прерывания под измерение освещенности
+     */
+    _handleIrq() {
+        // console.log('als handleIrq');
+        if (this._waitForALS) {
+            // console.log('false');
+            this._waitForALS = false;
+            let ambient = this.self._vl6180x._read16bit(regAddr.RESULT__ALS_VAL);
+            this.self._vl6180x._write8bit(regAddr.SYSTEM__INTERRUPT_CLEAR, 0x02);
+            // convert raw data to lux according to datasheet (section 2.13.4)
+            ambient = (0.32 * ambient) / 1.01;
+            this._ALS = ambient;
+        }
+    }
+    /**
+     * @method 
+     * Метод запускает процесс измерения расстояния, результат которого потом будет обработан и записан в _ALSValue
+     */
+    updateALS() {
+        if (this._waitForALS) {
+            return;
+        }
+        this.self._vl6180x._write8bit(regAddr.SYSTEM__INTERRUPT_CLEAR, 0x02);
+        this.self._vl6180x._write8bit(regAddr.SYSALS__START, 0x01);
+        this._waitForALS = true;
+        // console.log(`updALS ${this._waitForALS}`);
+    }
+    /**
+     * @method
+     * 
+     * @param {Number} value
+     */
+    set _ALS(value) {
+        this._ALSValue = value;
+    }
+    get _ALS() { return this._ALSValue; }
+}
+
+exports = { ClassVL6180X :     ClassVL6180X,
+            ClassVL6180XALS:   ClassVL6180XALS,
+            ClassVL6180XRange: ClassVL6180XRange };

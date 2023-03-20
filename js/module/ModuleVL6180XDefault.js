@@ -324,57 +324,6 @@ var regAddr = {
     this._waitForALSCallback = callback;
   };
   
-//   exports.registers = function() {
-//     return regAddr;
-//   };
-  // Экспорт самого класса
-//   exports._class = VL6180X; 
-  exports = { ClassVL6180XDefault:    VL6180X,
-              registers:  regAddr };
-  
-  // // // TODO
-  // // Starts continuous ranging measurements with the given period in ms
-  // // (10 ms resolution; defaults to 100 ms if not specified).
-  // VL6180X.prototype.startRangeContinuous = function(period) {
-  //   var periodReg = (period / 10) - 1;
-  //   periodReg = E.clip(periodReg, 0, 254);
-  
-  //   this._write8bit(regAddr.SYSRANGE__INTERMEASUREMENT_PERIOD, periodReg);
-  //   this._write8bit(regAddr.SYSRANGE__START, 0x03);
-  // };
-  
-  // // Starts continuous ambient light measurements with the given period in ms
-  // // (10 ms resolution; defaults to 500 ms if not specified).
-  // VL6180X.prototype.startAmbientContinuous = function(period) {
-  //   var periodReg = (period / 10) - 1;
-  //   periodReg = E.clip(periodReg, 0, 254);
-  
-  //   this._write8bit(regAddr.SYSALS__INTERMEASUREMENT_PERIOD, periodReg);
-  //   this._write8bit(regAddr.SYSALS__START, 0x03);
-  // };
-  
-  // // Starts continuous interleaved measurements with the given period in ms
-  // // (10 ms resolution; defaults to 500 ms if not specified). In this mode, each
-  // // ambient light measurement is immediately followed by a range measurement.
-  // //
-  // // The datasheet recommends using this mode instead of running "range and ALS
-  // // continuous modes simultaneously (i.e. asynchronously)".
-  // VL6180X.prototype.startInterleavedContinuous = function(period) {
-  //   var periodReg = (period / 10) - 1;
-  //   periodReg = E.clip(periodReg, 0, 254);
-  
-  //   this._write8bit(regAddr.INTERLEAVED_MODE__ENABLE, 1);
-  //   this._write8bit(regAddr.SYSALS__INTERMEASUREMENT_PERIOD, periodReg);
-  //   this._write8bit(regAddr.SYSALS__START, 0x03);
-  // };
-  
-  // // Stops continuous mode. This will actually start a single measurement of range
-  // // and/or ambient light if continuous mode is not active, so it's a good idea to
-  // // wait a few hundred ms after calling this function to let that complete
-  // // before starting continuous mode again or taking a reading.
-  // VL6180X.prototype.stopContinuous = function() {
-  //   this._write8bit(regAddr.SYSRANGE__START, 0x01);
-  //   this._write8bit(regAddr.SYSALS__START, 0x01);
-  //   this._write8bit(regAddr.INTERLEAVED_MODE__ENABLE, 0);
-  // };
-  
+exports = { ClassVL6180XDefault:    VL6180X,
+              registers:              regAddr };
+ 
