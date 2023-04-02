@@ -1,23 +1,15 @@
-I2C1.setup({sda: SDA, scl: SCL, bitrate: 400000});
 const err = require('https://raw.githubusercontent.com/Konkery/ModuleAppError/main/js/module/ModuleAppError.js');
+require('https://raw.githubusercontent.com/Konkery/ModuleAppMath/main/js/module/ModuleAppMath.min.js').is();
 
-const ClassBaseVL6180 = require('ModuleVL6180.min').ClassBaseVL6180;
-const ClassALS = require('ModuleALS.min');
-const ClassRangeSensor = require('ModuleRangeSensor.min');
+const ClassBaseVL6180 = require('ModuleVL6180.min');
+const ClassVL6180 = require('ModuleVL6180.min').ClassVL6180;
+const ClassBaseI2CBus = require('ClassBaseI2CBus.min');
+const I2Cbus = new ClassBaseI2CBus();
+let bus = I2Cbus.AddBus({sda:B9 , scl:B8, bitrate:400000 });
 
-try {
-    const base = new ClassBaseVL6180({i2c: I2C1, irqPin: P4});
-} catch (error) {
-    console.log(error.msg);
-}
-                   
-const als = new ClassALS(base);
-//als.OnUpdate(x => console.log(x));
-//als.UpdateIlluminance();
-//als.StartIlluminanceMeasures(1000);
+let vl = new ClassVL6180({i2c: bus.IDbus, irqPin: P4});
 
-//const ranger = new ClassRangeSensor(base);
-
-//ranger.StartRangeMeasures(1200);
-//ranger.OnUpdate(x => console.log(x));
-//ranger.Calibrate(1, 100);
+vl.StartRange(50);
+setTimeout(() => {vl.StartALS(200);}, 10000);
+setTimeout(() => {vl.StartDual(200);}, 20000);
+console.log(vl.Range, vl.Illuminance);

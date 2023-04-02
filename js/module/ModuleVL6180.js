@@ -19,33 +19,90 @@ class ClassBaseVL6180 {
      * @param {ObjectVL6180Param} _opt 
      */
     constructor(_opt) {
+        ClassBaseVL6180.__proto__.name = 'VL6180';
         if ((!_opt)                         ||
             (!(_opt.i2c instanceof I2C))    ||
             (!(_opt.irqPin instanceof Pin))) {
             throw new err(ClassBaseVL6180.ERROR_MSG_ARG_VALUE,
-                ClassBaseVL6180.ERROR_CODE_ARG_VALUE);
-        }
-        // channel_modes = ['NOT_SET', 'MONO', 'DUAL'];
-        // modes = ['WAIT_COMMAND', 'WORK_RANGE', 'WORK_ALS'];
-        this._State = {
-            channel_mode: 'NOT_SET',
-            mode: 'WAIT_COMMAND'
+                          ClassBaseVL6180.ERROR_CODE_ARG_VALUE);
         }
         this._IrqPin = _opt.irqPin;
         this._I2Cbus = _opt.i2c;
+        this.Init();
+        
         this._SetWatch = null;
-
+        this._State = this._States.NOT_SET;
+        
         this._WaitForRange = false;
         this._Range = Infinity;
-        this._RangePeriod = this.RANGE_MIN_TIME;
         
         this._WaitForALS = false;
         this._Illuminance = 0;
-        this._ALSPeriod = this.ALS_MIN_TIME;
-
+    }
+    /*******************************************CONST********************************************/
+    /**
+     * @const
+     * @type {number}
+     * Константа ERROR_CODE_ARG_VALUE определяет код ошибки, которая может произойти
+     * в случае передачи в конструктор не валидных данных
+     */
+    static get ERROR_CODE_ARG_VALUE() { return 10; }
+    /**
+     * @const
+     * @type {string}
+     * Константа ERROR_MSG_ARG_VALUE определяет сообщение ошибки, которая может произойти
+     * в случае передачи в конструктор не валидных данных
+     */
+    static get ERROR_MSG_ARG_VALUE()   { return `ERROR>> invalid data. ClassID: ${this.name}`; }
+    /**
+     * @const
+     * @type {string}
+     * Константа ERROR_MSG_WRONG_STATE определяет сообщение ошибки, которая может произойти
+     * в случае запроса на датчик когда он считывает и обрабатывает другой тип значений.
+     */
+    static get ERROR_MSG_WRONG_STATE() { return `ERROR>> sensor works in another mode. ClassID: ${this.name}`; }
+    /**
+     * @const
+     * @type {string}
+     * Константа ERROR_MSG_ALREADY_WORK определяет сообщение ошибки, которая может произойти
+     * при попытке повторно запустить тот же или другой цикл опроса. Т.Е запустить новый опрос во время работы датчика.
+     */
+    static get ERROR_MSG_ALREADY_WORK() { return `ERROR>> sensor is already polling. Stop it first 
+                                                to start new polling. ClassID: ${this.name}`; }
+    /**
+     * @const
+     * @type {Number}
+     * Константа ALS_MIN_TIME определяет минимальное время которое требуется датчику для выполнения 
+     * замера освещенности.
+     */
+    get ALS_MIN_TIME() { return 150; }
+    /**
+     * @const
+     * @type {Number}
+     * Константа RANGE_MIN_TIME определяет минимальное время которое требуется датчику для выполнения 
+     * замера расстояния.
+     */
+    get RANGE_MIN_TIME() { return 25; }
+    /**
+     * @const
+     * @type {Number}
+     * Константа ALS_MIN_TIME определяет минимальное время которое требуется датчику для выполнения 
+     * замера освещенности.
+     */
+    /*******************************************END CONST****************************************/
+    /*****************************************OTHER GETTERS***************************************** */
+    get IsBusy() { return this._WaitForALS || this._WaitForRange; }
+    /*****************************************END OTHER GETTERS***************************************** */
+    /**
+     * @method
+     * Метод иницализирует поля класса используемые для получения и обработки значений с датчика. 
+     */
+    Init() {
         this._RangeCalibrOpt = {k: 1, a: 0};
         this._ALSCalibrOpt = {k: 1, a: 0};
 
+        this._States = {NOT_SET:'NOT_SET', CHANGING_STATE:'CHANGING_STATE',
+                WORK_RANGE:'WORK_RANGE', WORK_ALS:'WORK_ALS', DUAL:'DUAL'};
         this.regAddr = {
             IDENTIFICATION__MODEL_ID: 0x000,
             IDENTIFICATION__MODEL_REV_MAJOR: 0x001,
@@ -118,80 +175,14 @@ class ClassBaseVL6180 {
             I2C_SLAVE__DEVICE_ADDRESS: 0x212,
             INTERLEAVED_MODE__ENABLE: 0x2a3
         };
-        this.Init();
-    }
-    /*******************************************CONST********************************************/
-    static get name() { return 'VL6180' };
-    /**
-     * @const
-     * @type {number}
-     * Константа ERROR_CODE_ARG_VALUE определяет код ошибки, которая может произойти
-     * в случае передачи в конструктор не валидных данных
-     */
-    static get ERROR_CODE_ARG_VALUE() { return 10; }
-    /**
-     * @const
-     * @type {string}
-     * Константа ERROR_MSG_ARG_VALUE определяет сообщение ошибки, которая может произойти
-     * в случае передачи в конструктор не валидных данных
-     */
-    static get ERROR_MSG_ARG_VALUE()   { return `ERROR>> invalid data. ClassID: ${ClassBaseVL6180.name}`; }
-    /**
-     * @const
-     * @type {string}
-     * Константа ERROR_MSG_WRONG_STATE определяет сообщение ошибки, которая может произойти
-     * в случае запроса на датчик когда он считывает и обрабатывает другой тип значений.
-     */
-    static get ERROR_MSG_WRONG_STATE() { return `ERROR>> sensor works in another mode. ClassID: ${ClassBaseVL6180.name}`; }
-    /**
-     * @const
-     * @type {string}
-     * Константа ERROR_MSG_ALREDY_WORK определяет сообщение ошибки, которая может произойти
-     * при попытке повторно запустить тот же или другой цикл опроса. Т.Е запустить новый опрос во время работы датчика.
-     */
-    static get ERROR_MSG_ALREDY_WORK() { return `ERROR>> sensor is already polling. Stop it first 
-                                                to start new polling. ClassID: ${ClassBaseVL6180.name}`; }
-    /**
-     * @const
-     * @type {Number}
-     * Константа ALS_MIN_TIME определяет минимальное время которое требуется датчику для выполнения 
-     * замера освещенности.
-     */
-    get ALS_MIN_TIME() { return 150; }
-    /**
-     * @const
-     * @type {Number}
-     * Константа RANGE_MIN_TIME определяет минимальное время которое требуется датчику для выполнения 
-     * замера расстояния.
-     */
-    get RANGE_MIN_TIME() { return 50; }
-    /**
-     * @const
-     * @type {Number}
-     * Константа ALS_MIN_TIME определяет минимальное время которое требуется датчику для выполнения 
-     * замера освещенности.
-     */
-    /*******************************************END CONST****************************************/
-    /*****************************************OTHER GETTERS***************************************** */
-    get IsBusy() { return this._WaitForALS || this._WaitForRange; }
-    /*****************************************END OTHER GETTERS***************************************** */
-    /**
-     * @method
-     * Метод иницализирует поля класса используемые для получения и обработки значений с датчика. 
-     */
-    Init() {
+
         this._address = 0x29;
         this._scaling = 0;
         this._ptpOffset = 0;
         this._scalerValues = new Uint16Array([0, 253, 127, 84]);
         this._init();
         this._configureDefault();
-        this.SetWatch();
-        // setWatch(this.HandleIrq.bind(this), this._IrqPin, {
-        //     repeat: true,
-        //     edge: 'rising',
-        //     debounce: 10
-        // });
+
     }
     /**
      * @method
@@ -210,117 +201,135 @@ class ClassBaseVL6180 {
      */
     ResetWatch() {
         clearWatch(this._SetWatch);
-        this._SetWatch = null; 
-        this._WaitForALS = false;
-        this._WaitForRange = false;
     }
     /**
      * Метод запускает циклический опрос расстояния если датчик находится в режиме ожидания 
      * @param {Number} _period - время в мс за которое будет выполняться единичный опрос датчика [x >= 50 мс] 
+     * @returns {Boolean} - true если опрос был успешно запущен, false если датчик уже запускал другой опрос 
      */
     StartRange(_period) {
-        if (this._State.mode !== 'WAIT_COMMAND') throw err(this.ERROR_MSG_ALREDY_WORK); //Для выполнения метода проверяем что датчик находится в режиме ожидания
-        this._RangePeriod = _period >= this.RANGE_MIN_TIME ? _period : this.RANGE_MIN_TIME;
-        this._State.channel_mode = 'MONO'
-        this._State.mode = 'WORK_RANGE';
+        if (this._State === this._States.CHANGING_STATE) return false; //Если датчик уже находится в режиме перехода из одного состояния в другое, то метод сразу завершается возвращением false
+        if (this._State !== this._States.NOT_SET) this._State = this._States.CHANGING_STATE; //если датчик уже выполняет циклический опрос, то меняем флаг датчика на 'CHANGING' 
+        
+        let time = this._State !== this._States.NOT_SET ? this.ALS_MIN_TIME * 2 : 30; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже    
+        let startMeasTimeout = setTimeout(() => {
+            this._State = this._States.WORK_RANGE;
+            _period = _period >= 2 * this.RANGE_MIN_TIME ? _period : 2 * this.RANGE_MIN_TIME; //валидация период опроса
 
-        this.CooldownedStart(() => {
-            this._RangeInterval = setInterval(this.UpdateRange.bind(this), _period);
-        });
+            this._RangeInterval = setInterval(() => { //этот интервал отвечает за циклический опрос датчика
+                if (this._State !== this._States.CHANGING_STATE) {
+                    this.UpdateRange();
+                    if (!this._SetWatch) setTimeout(() => {                 //если нет наблюдения за пином прерывания
+                        if (this._WaitForRange) this.HandleRangeUpdate();   //вручную вызываю обработку полученныхт значений
+                    }, this.RANGE_MIN_TIME);                                //через приблизтельное время, необходимое для завершения предыдущего запроса
+                } else {
+                    clearInterval(this._RangeInterval);   //если датчик находится в состоянии 'CHANGING' требуется остановить интервал.
+                }
+            }, _period);
+        }, time);
+        return true;
     }
     /**
      * Метод запускает циклический опрос освещенности если датчик находится в режиме ожидания 
      * @param {Number} _period - время в мс за которое будет выполняться единичный опрос датчика [x >= 150 мс] 
+     * @returns {Boolean} - true если опрос был успешно запущен, false если датчик уже запускал другой опрос
      */
     StartALS(_period) {
-        if (this._State.mode !== 'WAIT_COMMAND') throw err(this.ERROR_MSG_ALREDY_WORK); //Для выполнения метода проверяем что датчик находится в режиме ожидания
-        this._ALSPeriod = _period >= this.ALS_MIN_TIME ? _period : this.ALS_MIN_TIME;
-        this._State.channel_mode = 'MONO'
-        this._State.mode = 'WORK_ALS';
+        if (this._State === this._States.CHANGING_STATE) return false; //Если датчик уже находится в режиме перехода из одного состояния в другое, то метод сразу завершается возвращением false
+        if (this._State !== this._States.NOT_SET) this._State = this._States.CHANGING_STATE; //если датчик уже выполняет циклический опрос, то меняем флаг датчика на 'CHANGING'
 
-        this.CooldownedStart(() => {
-            this._ALSInterval = setInterval(this.UpdateIlluminance.bind(this), _period);
-        });
+        let time = this._State !== this._States.NOT_SET ? 2 * this.ALS_MIN_TIME : 30; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже 
+        let startMeasTimeout = setTimeout(() => { //по окончанию этого таймаута запустится новый цикл опроса.
+            this._State = this._States.WORK_ALS;
+            _period = _period >= 2 * this.ALS_MIN_TIME ? _period : 2 * this.ALS_MIN_TIME; //валидация период опроса
 
+            this._ALSInterval = setInterval(() => {   //этот интервал отвечает за циклический опрос датчика 
+                if (this._State !== this._States.CHANGING_STATE) {
+                    this.UpdateIlluminance(); 
+                    if (!this._SetWatch) setTimeout(() => {                    //если нет наблюдения за пином прерывания
+                        if (this._WaitForALS) this.HandleIlluminanceUpdate();  //вручную вызываю обработку полученныхт значений
+                    }, this.ALS_MIN_TIME);                                     //через приблизтельное время, необходимое для завершения предыдущего запроса
+                } else {
+                    clearInterval(this._ALSInterval); //если датчик находится в состоянии 'CHANGING' требуется остановить интервал.
+                }
+            }, _period);
+        }, time);
+        return true;
     }
     /**
      *Метод запускает циклический поочередный опрос освещенности и расстояния если датчик находится в режиме ожидания 
      *@param {Number} _period - время в мс за которое будет выполняться единичный опрос датчика [x >= 150 мс]
+     *@returns {Boolean} - true если опрос был успешно запущен, false если датчик уже запускал другой опрос
      */
     StartDual(_period) {
-        if (this._State.mode !== 'WAIT_COMMAND') throw err(this.ERROR_MSG_ALREDY_WORK); //Для выполнения метода проверяем что датчик находится в режиме ожидания
-        this._ALSPeriod = _period >= this.ALS_MIN_TIME ? _period : this.ALS_MIN_TIME;
-        this._RangePeriod = this._ALSPeriod;
-        this._State.channel_mode = 'DUAL';
-        
-        let bool = true;
-        this.CooldownedStart(() => {
-            this._DualInterval = setInterval(() => {
-                if (bool) {
-                    this._State.mode = 'WORK_RANGE';
-                    this.UpdateRange();
+        if (this._State === this._States.CHANGING_STATE) return false; //Если датчик уже находится в режиме перехода из одного состояния в другое, то метод сразу завершается возвращением false
+        if (this._State !== this._States.NOT_SET) this._State = this._States.CHANGING_STATE; //если датчик уже выполняет циклический опрос, то меняем флаг датчика на 'CHANGING'
+
+        let time = this._State !== this._States.NOT_SET ? 2 * this.ALS_MIN_TIME : 30; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже 
+        let startMeasTimeout = setTimeout(() => {
+            this._State = this._States.DUAL;
+            _period = _period >= 2 * this.ALS_MIN_TIME ? _period : 2 * this.ALS_MIN_TIME; //валидация период опроса
+            let bool = true;
+            this._DualInterval = setInterval(() => { //этот интервал отвечает за циклический опрос датчика
+                if (this._State !== this._States.CHANGING_STATE) {
+                    if (bool) {
+                        this._State = this._States.WORK_RANGE;
+                        this.UpdateRange();
+                        if (!this._SetWatch) setTimeout(() => {                 //если нет наблюдения за пином прерывания
+                            if (this._WaitForRange) this.HandleRangeUpdate();   //вручную вызываю обработку полученныхт значений
+                        }, this.RANGE_MIN_TIME);                                //через приблизтельное время, необходимое для завершения предыдущего запроса
+                    } else {
+                        this._State = this._States.WORK_ALS;
+                        this.UpdateIlluminance();
+                        if (!this._SetWatch) setTimeout(() => {
+                            if (this._WaitForALS) this.HandleIlluminanceUpdate();
+                        }, this.ALS_MIN_TIME);
+                    }
+                    bool = !bool;
                 } else {
-                    this._State.mode = 'WORK_ALS';
-                    this.UpdateIlluminance();
+                    clearInterval(this._DualInterval);   //если датчик находится в состоянии 'CHANGING' требуется остановить интервал.
                 }
-                bool = !bool;
             }, _period);
-        });
-    }
-    /**
-     * Метод завершает все циклические опросы датчика.
-     * ПРИМЕЧАНИЕ! После отработки метода датчик может еще только завершать полученные ранее команды, 
-     * соответственно стоит расчитывать что опрос работа датчика будет в полной мере прекращена через 50-150 мс после вызова метода    
-     */
-    Stop() { 
-        this._State.mode = 'WAIT_COMMAND';
-        this._State.channel_mode = 'NOT_SET';
-
-        if (this._RangeInterval) {
-            clearInterval(this._RangeInterval);
-            this._RangeInterval = null;
-
-        } else if (this._ALSInterval) {
-            clearInterval(this._ALSInterval);
-            this._ALSInterval = null
-
-        } else if (this._DualInterval) {
-            clearInterval(this._DualInterval);
-            this._DualInterval = null;
-        }
-        let c = 5;
-        let checkFieldsTimer = setTimeout(() => {      //При сбоях работы датчика, его поля {this._WaitForALS и this._WaitForRange} не обновлятся, что может мешать возобновить работы с датчиком 
-            if (this. _State.mode === 'WAIT_COMMAND' &&    
-                this._State.channel_mode === 'NOT_SET') {
-                    this._WaitForALS = false;  //Поэтому я я проверяю их обнуление спустя небольшое время после остановки всех процессов.
-                    this._WaitForRange = false;
-                }
-            else if (--c) checkFieldsTimer();
-        }, this.ALS_MIN_TIME*1.2);
+        }, time);
+        return true;
+        //#region КОСТЫЛЬ
+        // this.CooldownedStart(() => {
+        //     this._DualInterval = setInterval(() => {
+        //         if (bool) {
+        //             this._State = 'WORK_RANGE';
+        //             this.UpdateRange();
+        //         } else {
+        //             this._State = 'WORK_ALS';
+        //             this.UpdateIlluminance();
+        //         }
+        //         bool = !bool;
+        //     }, _period);
+        // });
+        //#endregion
     }
     /**
      * @method
      * Метод вызывает взятие замера расстояния, которое будет записано в поле _Range
+     * @returns {Boolean} - true если запрос был успешно отправлен, false если датчик уже обрабатывал другой запрос
      */
     UpdateRange() {
-        if (this._State.mode === 'WAIT_COMMAND') return;
-        if (this._State.mode === 'WORK_ALS' && 
-            this._State.channel_mode === 'MONO') throw new err(this.ERROR_MSG_WRONG_STATE);
+        if (this.IsBusy) return false;
         this._WaitForRange = true;
         this._write8bit(this.regAddr.SYSRANGE__START, 0x01);
-        this._write8bit(this.regAddr.SYSTEM__INTERRUPT_CLEAR, 0x01);
+        if (this._SetWatch) this._write8bit(this.regAddr.SYSTEM__INTERRUPT_CLEAR, 0x01);
+        return true;
     }
     /**
      * @method
      * Метод вызывает взятие замера освещенности, которое будет записано в поле _Illuminance
+     * @returns {Boolean} - true если запрос был успешно отправлен, false если датчик уже обрабатывал другой запрос
      */
     UpdateIlluminance() {
-        if (this._State.mode === 'WAIT_COMMAND') return;
-        if (this._State.mode === 'WORK_RANGE' &&
-            this._State.channel_mode === 'MONO') throw new err(this.ERROR_MSG_WRONG_STATE);
+        if (this.IsBusy) return false;
         this._WaitForALS = true;
-        this._write8bit(this.regAddr.SYSTEM__INTERRUPT_CLEAR, 0x02);
         this._write8bit(this.regAddr.SYSALS__START, 0x01);
+        if (this._SetWatch) this._write8bit(this.regAddr.SYSTEM__INTERRUPT_CLEAR, 0x02);
+        return true;
     }
     /**
      * @method
@@ -358,20 +367,6 @@ class ClassBaseVL6180 {
             this.HandleRangeUpdate();
         }
     }
-    /**
-     * Метод вызывает переданную функцию когда датчик перестанет обрабатывать поолученные ранее запросы.
-     * Метод используется внутри некоторых других методов для избежания потенциальных багов при запуске 
-     * циклических опросов через StartRange(), StartALS() и StartDual(). 
-     * @param {Function} _function 
-     */
-    CooldownedStart(_function) {
-        let cooldownInterval = setInterval(() => {
-            if (!this.IsBusy) {
-                clearInterval(cooldownInterval);
-                _function();
-            }
-        }, 20);
-    }
     /**********************************Calibration Methods************************************************** */
     /**
      * @method
@@ -381,74 +376,73 @@ class ClassBaseVL6180 {
      * @param {Number} _k - коэффициент на который умножается получаемое значение, получаемое с датчика.
      * @param {Number} _a - число на которое изменяется 
      */
-        SetALSCalibration(_k, _a) {
-            if (typeof (_k) !== 'number' || 
-                typeof (_a) !== 'number') {
-    
-                    throw new err(ClassRangeSensor.ERROR_MSG_ARG_VALUE,
-                                  ClassRangeSensor.ERROR_CODE_ARG_VALUE);
-            }
-            this._ALSCalibrOpt.k = _k;
-            this._ALSCalibrOpt.a = _a;
+    SetALSCalibration(_k, _a) {
+        if (typeof (_k) !== 'number' || 
+            typeof (_a) !== 'number') {
+
+                throw new err(ClassBaseVL6180.ERROR_MSG_ARG_VALUE,
+                                ClassBaseVL6180.ERROR_CODE_ARG_VALUE);
         }
-        
-        /**
-         * @method
-         * Метод возвращает стандартные значения калибровки получаемых результатов измерений.
-         * ПРИМЕЧАНИЕ: после вызова метода уже записанные значения остаются низменными.
-         */
-        ResetALSCalibration() {
-            this._ALSCalibrOpt.k = 1;
-            this._ALSCalibrOpt.a = 0;
-        }
-        /**
-         * @method
-         * Метод возвращает числовое значение в соответствии с параметрами калибровки освещенности.
-         * Напоиинаю, что калибровка описывается формулой y = kx + a
-         * @param {Number} _illum 
-         * @returns {Number}
-         */
-        CalibrateALSValue(_illum) {
-            return _illum * this._ALSCalibrOpt.k + this._ALSCalibrOpt.a;
-        }
-        /**
-         * @method
-         * Метод устанавливает параметры калибровки получаемых значений расстояния. 
-         * Их смысл описывается функцией y = kx + a, где x - изначальное значение.
-         * ПРИМЕЧАНИЕ: после вызова метода уже записанные значения остаются низменными.
-         * @param {Number} _k - коэффициент на который умножается получаемое значение, получаемое с датчика.
-         * @param {Number} _a - число на которое изменяется 
-         */
-        SetRangeCalibration(_k, _a) {
-            if (typeof (_k) !== 'number' || 
-                typeof (_a) !== 'number') {
-    
-                    throw new err(ClassALS.ERROR_MSG_ARG_VALUE,
-                                  ClassALS.ERROR_CODE_ARG_VALUE);
-            }
-            this._RangeCalibrOpt.k = _k;
-            this._RangeCalibrOpt.a = _a;
-        }
-        /**
-         * @method
-         * Метод возвращает стандартные значения калибровки получаемых результатов измерений.
-         * ПРИМЕЧАНИЕ: после вызова метода уже записанные значения остаются низменными.
-         */
-        ResetRangeCalibration() {
-            this._RangeCalibrOpt.k = 1;
-            this._RangeCalibrOpt.a = 0;
-        }
-        /**
-         * @method
-         * Метод возвращает числовое значение в соответствии с параметрами калибровки освещенности.
-         * Напоиинаю, что калибровка описывается формулой y = kx + a
-         * @param {Number} _illum 
-         * @returns {Number}
-         */
-        CalibrateRangeValue(_rng) {
-            return _rng * this._RangeCalibrOpt.k + this._RangeCalibrOpt.a;
-        }
+        this._ALSCalibrOpt.k = _k;
+        this._ALSCalibrOpt.a = _a;
     }
+    /**
+     * @method
+     * Метод возвращает стандартные значения калибровки получаемых результатов измерений.
+     * ПРИМЕЧАНИЕ: после вызова метода уже записанные значения остаются низменными.
+     */
+    ResetALSCalibration() {
+        this._ALSCalibrOpt.k = 1;
+        this._ALSCalibrOpt.a = 0;
+    }
+    /**
+     * @method
+     * Метод возвращает числовое значение в соответствии с параметрами калибровки освещенности.
+     * Напоиинаю, что калибровка описывается формулой y = kx + a
+     * @param {Number} _illum 
+     * @returns {Number}
+     */
+    CalibrateALSValue(_illum) {
+        return _illum * this._ALSCalibrOpt.k + this._ALSCalibrOpt.a;
+    }
+    /**
+     * @method
+     * Метод устанавливает параметры калибровки получаемых значений расстояния. 
+     * Их смысл описывается функцией y = kx + a, где x - изначальное значение.
+     * ПРИМЕЧАНИЕ: после вызова метода уже записанные значения остаются низменными.
+     * @param {Number} _k - коэффициент на который умножается получаемое значение, получаемое с датчика.
+     * @param {Number} _a - число на которое изменяется 
+     */
+    SetRangeCalibration(_k, _a) {
+        if (typeof (_k) !== 'number' || 
+            typeof (_a) !== 'number') {
+
+                throw new err(ClassBaseVL6180.ERROR_MSG_ARG_VALUE,
+                                ClassBaseVL6180.ERROR_CODE_ARG_VALUE);
+        }
+        this._RangeCalibrOpt.k = _k;
+        this._RangeCalibrOpt.a = _a;
+    }
+    /**
+     * @method
+     * Метод возвращает стандартные значения калибровки получаемых результатов измерений.
+     * ПРИМЕЧАНИЕ: после вызова метода уже записанные значения остаются низменными.
+     */
+    ResetRangeCalibration() {
+        this._RangeCalibrOpt.k = 1;
+        this._RangeCalibrOpt.a = 0;
+    }
+    /**
+     * @method
+     * Метод возвращает числовое значение в соответствии с параметрами калибровки освещенности.
+     * Напоиинаю, что калибровка описывается формулой y = kx + a
+     * @param {Number} _illum 
+     * @returns {Number}
+     */
+    CalibrateRangeValue(_rng) {
+        return _rng * this._RangeCalibrOpt.k + this._RangeCalibrOpt.a;
+    }
+}
 //#region функции которые не стоит редактировать
 ClassBaseVL6180.prototype._init = function () {
     // Store part-to-part range offset so it can be adjusted if scaling is changed
