@@ -5,7 +5,7 @@ const ClassBaseVL6180 = require('ModuleVL6180.min');
 const ClassVL6180 = require('ModuleVL6180.min').ClassVL6180;
 const ClassBaseI2CBus = require('ClassBaseI2CBus.min');
 const I2Cbus = new ClassBaseI2CBus();
-let bus = I2Cbus.AddBus({sda:B9 , scl:B8, bitrate:400000 });
+let bus = I2Cbus.AddBus({sda:B9 , scl:B8, bitrate:100000 });
 
 let vl = new ClassVL6180({i2c: bus.IDbus, irqPin: P4});
 
