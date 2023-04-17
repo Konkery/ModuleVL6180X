@@ -30,13 +30,9 @@ class ClassBaseVL6180 {
         this._I2Cbus = _opt.i2c;
         this._SetWatch = null;
         this.Init();
-        
+
         this._State = this._States.NOT_SET;
-        
-        this._WaitForRange = false;
         this._Range = Infinity;
-        
-        this._WaitForALS = false;
         this._Illuminance = 0;
     }
     /*******************************************CONST********************************************/
@@ -90,9 +86,6 @@ class ClassBaseVL6180 {
      * замера освещенности.
      */
     /*******************************************END CONST****************************************/
-    /*****************************************OTHER GETTERS***************************************** */
-    get IsBusy() { return this._WaitForALS || this._WaitForRange; }
-    /*****************************************END OTHER GETTERS***************************************** */
     /**
      * @method
      * Метод иницализирует поля класса используемые для получения и обработки значений с датчика. 
@@ -202,6 +195,17 @@ class ClassBaseVL6180 {
     ResetWatch() {
         clearWatch(this._SetWatch);
     }
+    WatchStatus() {
+        let status = this.GetStatus();
+        setInterval(() => {
+            status = this.GetStatus();
+            if (status & (1 << 5)) {
+                this.HandleIlluminanceUpdate();
+            } else if (status & (1 << 2)) {
+                this.HandleRangeUpdate();
+            }
+        }, 20);
+    }
     /**
      * Метод запускает циклический опрос расстояния если датчик находится в режиме ожидания 
      * @param {Number} _period - время в мс за которое будет выполняться единичный опрос датчика [x >= 50 мс] 
@@ -211,19 +215,18 @@ class ClassBaseVL6180 {
         if (this._State === this._States.CHANGING_STATE) return false; //Если датчик уже находится в режиме перехода из одного состояния в другое, то метод сразу завершается возвращением false
         if (this._State !== this._States.NOT_SET) this._State = this._States.CHANGING_STATE; //если датчик уже выполняет циклический опрос, то меняем флаг датчика на 'CHANGING' 
         
-        let time = this._State !== this._States.NOT_SET ? this.ALS_MIN_TIME * 2 : 0; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже    
+        let time = this._State !== this._States.NOT_SET ? this.ALS_MIN_TIME : 0; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже    
         let startMeasTimeout = setTimeout(() => {
             this._State = this._States.WORK_RANGE;
             _period = _period >= this.RANGE_MIN_TIME ? _period : this.RANGE_MIN_TIME; //валидация период опроса
-
+            
             this._RangeInterval = setInterval(() => { //этот интервал отвечает за циклический опрос датчика
-                if (this.IsBusy) {
-                    this,this.HandleIrq();
-                } else if (this._State !== this._States.CHANGING_STATE) {
-                    this.UpdateRange();
-                } else {
+                if (this._State !== this._States.WORK_RANGE) {
                     clearInterval(this._RangeInterval);   //если датчик находится в состоянии 'CHANGING' требуется остановить интервал.
+                    return;
                 }
+                this.UpdateRange();
+
             }, _period);
         }, time);
         return true;
@@ -237,19 +240,18 @@ class ClassBaseVL6180 {
         if (this._State === this._States.CHANGING_STATE) return false; //Если датчик уже находится в режиме перехода из одного состояния в другое, то метод сразу завершается возвращением false
         if (this._State !== this._States.NOT_SET) this._State = this._States.CHANGING_STATE; //если датчик уже выполняет циклический опрос, то меняем флаг датчика на 'CHANGING'
 
-        let time = this._State !== this._States.NOT_SET ? 2 * this.ALS_MIN_TIME : 30; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже 
+        let time = this._State !== this._States.NOT_SET ? this.ALS_MIN_TIME : 0; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже 
         let startMeasTimeout = setTimeout(() => { //по окончанию этого таймаута запустится новый цикл опроса.
             this._State = this._States.WORK_ALS;
-            _period = _period >= 1.25 * this.ALS_MIN_TIME ? _period : 1.25 * this.ALS_MIN_TIME; //валидация период опроса
+            _period = _period >= this.ALS_MIN_TIME ? _period : this.ALS_MIN_TIME; //валидация период опроса
 
             this._ALSInterval = setInterval(() => {   //этот интервал отвечает за циклический опрос датчика 
-                if (this.IsBusy) {
-                    this.HandleIrq();
-                } else if (this._State !== this._States.CHANGING_STATE) {
-                    this.UpdateIlluminance();
-                } else {
-                    clearInterval(this._ALSInterval); //если датчик находится в состоянии 'CHANGING' требуется остановить интервал.
+                if (this._State === this._States.CHANGING_STATE) {
+                    clearInterval(this._ALSInterval);   //если датчик находится в состоянии 'CHANGING' требуется остановить интервал.
+                    return;
                 }
+                this.UpdateIlluminance();
+
             }, _period);
         }, time);
         return true;
@@ -263,43 +265,27 @@ class ClassBaseVL6180 {
         if (this._State === this._States.CHANGING_STATE) return false; //Если датчик уже находится в режиме перехода из одного состояния в другое, то метод сразу завершается возвращением false
         if (this._State !== this._States.NOT_SET) this._State = this._States.CHANGING_STATE; //если датчик уже выполняет циклический опрос, то меняем флаг датчика на 'CHANGING'
 
-        let time = this._State !== this._States.NOT_SET ? 2 * this.ALS_MIN_TIME : 30; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже 
+        let time = this._State !== this._States.NOT_SET ? this.ALS_MIN_TIME : 0; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже 
         let startMeasTimeout = setTimeout(() => {
             this._State = this._States.DUAL;
-            _period = _period >= 1.25 * this.ALS_MIN_TIME ? _period : 1.25 * this.ALS_MIN_TIME; //валидация период опроса
+            _period = _period >= this.ALS_MIN_TIME ? _period : this.ALS_MIN_TIME; //валидация период опроса
             let bool = true;
             this._DualInterval = setInterval(() => { //этот интервал отвечает за циклический опрос датчика
                 if (this._State !== this._States.CHANGING_STATE) {
-                    if (this.IsBusy) {
-                        this.HandleIrq();
-                    } else if (bool) {
-                        this._State = this._States.WORK_RANGE;
-                        this.UpdateRange();  
-                    } else {
-                        this._State = this._States.WORK_ALS;
-                        this.UpdateIlluminance();
+
+                    if (this._State === this._States.CHANGING_STATE) {
+                        clearInterval(this._DualInterval);   //если датчик находится в состоянии 'CHANGING' требуется остановить интервал.
+                        return;
                     }
+
+                    if (bool) this.UpdateRange();
+                    else this.UpdateIlluminance();
                     bool = !bool;
-                } else {
-                    clearInterval(this._DualInterval);   //если датчик находится в состоянии 'CHANGING' требуется остановить интервал.
+                    
                 }
             }, _period);
         }, time);
         return true;
-        //#region КОСТЫЛЬ
-        // this.CooldownedStart(() => {
-        //     this._DualInterval = setInterval(() => {
-        //         if (bool) {
-        //             this._State = 'WORK_RANGE';
-        //             this.UpdateRange();
-        //         } else {
-        //             this._State = 'WORK_ALS';
-        //             this.UpdateIlluminance();
-        //         }
-        //         bool = !bool;
-        //     }, _period);
-        // });
-        //#endregion
     }
     /**
      * @method
@@ -307,11 +293,13 @@ class ClassBaseVL6180 {
      * @returns {Boolean} - true если запрос был успешно отправлен, false если датчик уже обрабатывал другой запрос
      */
     UpdateRange() {
-        if (this.IsBusy) return false;
-        this._WaitForRange = true;
-        this._write8bit(this.regAddr.SYSRANGE__START, 0x01);
-        this._write8bit(this.regAddr.SYSTEM__INTERRUPT_CLEAR, 0x01);
-        return true;
+        if (this.GetStatus()) return false;
+        if (this._read8bit(this.regAddr.RESULT__RANGE_STATUS) & 0x01) {  
+            this._write8bit(this.regAddr.SYSRANGE__START, 0x01);
+            this._write8bit(this.regAddr.SYSTEM__INTERRUPT_CLEAR, 0x01);
+            return true;
+        }
+        return false;
     }
     /**
      * @method
@@ -319,10 +307,11 @@ class ClassBaseVL6180 {
      * @returns {Boolean} - true если запрос был успешно отправлен, false если датчик уже обрабатывал другой запрос
      */
     UpdateIlluminance() {
-        if (this.IsBusy) return false;
-        this._WaitForALS = true;
-        this._write8bit(this.regAddr.SYSALS__START, 0x01);
-        this._write8bit(this.regAddr.SYSTEM__INTERRUPT_CLEAR, 0x02);
+        if (this.GetStatus()) return false;
+        if (this._read8bit(this.regAddr.RESULT__ALS_STATUS) & 0x01) {
+            this._write8bit(this.regAddr.SYSALS__START, 0x01);
+            this._write8bit(this.regAddr.SYSTEM__INTERRUPT_CLEAR, 0x02);
+        }
         return true;
     }
     /**
@@ -331,7 +320,6 @@ class ClassBaseVL6180 {
      * и в зависимости от текущего состояния (this._State) зацикливает либо прекращает опрос датчика. 
      */
     HandleRangeUpdate() {
-        this._WaitForRange = false;
         var range = this._read8bit(this.regAddr.RESULT__RANGE_VAL);
         this._write8bit(this.regAddr.SYSTEM__INTERRUPT_CLEAR, 0x01);
         if (range === 255) range = Infinity;
@@ -343,7 +331,6 @@ class ClassBaseVL6180 {
      * и  в зависимости от текущего состояния (this._State) зацикливает либо прекращает опрос датчика. 
      */
     HandleIlluminanceUpdate() {
-        this._WaitForALS = false;
         var ambient = this._read16bit(this.regAddr.RESULT__ALS_VAL);
         this._write8bit(this.regAddr.SYSTEM__INTERRUPT_CLEAR, 0x02);
         ambient = (0.32 * ambient) / 1.01;  // перевод полученного значения в lux'ы соответственно к даташиту (section 2.13.4)
@@ -355,11 +342,23 @@ class ClassBaseVL6180 {
      * HandlelluminanceUpdate() или HandleRangeUpdate()
      */
     HandleIrq() {
-        if (this._WaitForALS) {
+        let status = this.GetStatus();
+        if (status & (1 << 5)) {
             this.HandleIlluminanceUpdate();
-        } else if (this._WaitForRange) {
+        } else if (status & (1 << 2)) {
             this.HandleRangeUpdate();
         }
+    }
+    /**
+     * @method
+     * Возвращает статус выполнения замера:
+     * - 4 если выполнен замер расстояния 
+     * - 32 если выполнен замер освещенности
+     * - 0 в иных случаях
+     * @returns {Number}
+     */
+    GetStatus() {
+        return this._read8bit(this.regAddr.RESULT__INTERRUPT_STATUS_GPIO);
     }
     /**********************************Calibration Methods************************************************** */
     /**
