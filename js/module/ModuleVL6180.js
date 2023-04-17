@@ -71,7 +71,7 @@ class ClassBaseVL6180 {
      * Константа ALS_MIN_TIME определяет минимальное время которое требуется датчику для выполнения 
      * замера освещенности.
      */
-    get ALS_MIN_TIME() { return 110; }
+    get ALS_MIN_TIME() { return 150; }
     /**
      * @const
      * @type {Number}
@@ -215,7 +215,7 @@ class ClassBaseVL6180 {
         if (this._State === this._States.CHANGING_STATE) return false; //Если датчик уже находится в режиме перехода из одного состояния в другое, то метод сразу завершается возвращением false
         if (this._State !== this._States.NOT_SET) this._State = this._States.CHANGING_STATE; //если датчик уже выполняет циклический опрос, то меняем флаг датчика на 'CHANGING' 
         
-        let time = this._State !== this._States.NOT_SET ? this.ALS_MIN_TIME * 1.5 : 0; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже    
+        let time = this._State !== this._States.NOT_SET ? this.ALS_MIN_TIME * 2 : 0; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже    
         let startMeasTimeout = setTimeout(() => {
             this._State = this._States.WORK_RANGE;
             _period = _period >= this.RANGE_MIN_TIME ? _period : this.RANGE_MIN_TIME; //валидация период опроса
@@ -223,9 +223,9 @@ class ClassBaseVL6180 {
             this._RangeInterval = setInterval(() => { //этот интервал отвечает за циклический опрос датчика
                 if (this._State !== this._States.WORK_RANGE) {
                     clearInterval(this._RangeInterval);   //если  режим датчика не соответствует данному опросу, требуется остановить интервал.
-                    return;
+                    this._RangeInterval = null;
                 }
-                this.UpdateRange();
+                else this.UpdateRange();
 
             }, _period);
         }, time);
@@ -240,7 +240,7 @@ class ClassBaseVL6180 {
         if (this._State === this._States.CHANGING_STATE) return false; //Если датчик уже находится в режиме перехода из одного состояния в другое, то метод сразу завершается возвращением false
         if (this._State !== this._States.NOT_SET) this._State = this._States.CHANGING_STATE; //если датчик уже выполняет циклический опрос, то меняем флаг датчика на 'CHANGING'
 
-        let time = this._State !== this._States.NOT_SET ? this.ALS_MIN_TIME * 1.5 : 0; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже 
+        let time = this._State !== this._States.NOT_SET ? this.ALS_MIN_TIME * 2 : 0; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже 
         let startMeasTimeout = setTimeout(() => { //по окончанию этого таймаута запустится новый цикл опроса.
             this._State = this._States.WORK_ALS;
             _period = _period >= this.ALS_MIN_TIME ? _period : this.ALS_MIN_TIME; //валидация период опроса
@@ -248,9 +248,9 @@ class ClassBaseVL6180 {
             this._ALSInterval = setInterval(() => {   //этот интервал отвечает за циклический опрос датчика 
                 if (this._State !== this._States.WORK_ALS) {
                     clearInterval(this._ALSInterval);   //если  режим датчика не соответствует данному опросу, требуется остановить интервал.
-                    return;
+                    this._ALSInterval = null;
                 }
-                this.UpdateIlluminance();
+                else this.UpdateIlluminance();
 
             }, _period);
         }, time);
@@ -265,7 +265,7 @@ class ClassBaseVL6180 {
         if (this._State === this._States.CHANGING_STATE) return false; //Если датчик уже находится в режиме перехода из одного состояния в другое, то метод сразу завершается возвращением false
         if (this._State !== this._States.NOT_SET) this._State = this._States.CHANGING_STATE; //если датчик уже выполняет циклический опрос, то меняем флаг датчика на 'CHANGING'
 
-        let time = this._State !== this._States.NOT_SET ? this.ALS_MIN_TIME * 1.5 : 0; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже 
+        let time = this._State !== this._States.NOT_SET ? this.ALS_MIN_TIME * 2 : 0; //устанавливаю время, которое дается датчику на завершение текущего опроса пред запуском нового и передаю его в таймаут ниже 
         let startMeasTimeout = setTimeout(() => {
             this._State = this._States.DUAL;
             _period = _period >= this.ALS_MIN_TIME ? _period : this.ALS_MIN_TIME; //валидация период опроса
@@ -274,13 +274,14 @@ class ClassBaseVL6180 {
 
                 if (this._State !== this._States.DUAL) {
                     clearInterval(this._DualInterval);   //если  режим датчика не соответствует данному опросу, требуется остановить интервал.
-                    return;
+                    this._DualInterval = null;
+
+                } else {
+                    if (bool) this.UpdateRange();
+                    else this.UpdateIlluminance();
+                    bool = !bool;
                 }
 
-                if (bool) this.UpdateRange();
-                else this.UpdateIlluminance();
-                bool = !bool;
-                    
             }, _period);
         }, time);
         return true;
@@ -309,8 +310,9 @@ class ClassBaseVL6180 {
         if (this._read8bit(this.regAddr.RESULT__ALS_STATUS) & 0x01) {
             this._write8bit(this.regAddr.SYSALS__START, 0x01);
             this._write8bit(this.regAddr.SYSTEM__INTERRUPT_CLEAR, 0x02);
+            return true;
         }
-        return true;
+        return false;
     }
     /**
      * @method
