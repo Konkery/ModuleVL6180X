@@ -19,7 +19,7 @@ class ClassBaseVL6180 {
      * @param {ObjectVL6180Param} _opt 
      */
     constructor(_opt) {
-        ClassBaseVL6180.__proto__.name = 'VL6180';
+        ClassBaseVL6180.name = 'VL6180';
         if ((!_opt)                         ||
             (!(_opt.i2c instanceof I2C))    ||
             (!(_opt.irqPin instanceof Pin))) {
@@ -49,14 +49,14 @@ class ClassBaseVL6180 {
      * Константа ERROR_MSG_ARG_VALUE определяет сообщение ошибки, которая может произойти
      * в случае передачи в конструктор не валидных данных
      */
-    static get ERROR_MSG_ARG_VALUE()   { return `ERROR>> invalid data. ClassID: ${this.name}`; }
+    static get ERROR_MSG_ARG_VALUE()   { return `ERROR>> invalid data. ClassID: ${this.name || 'VL6180'}`; }
     /**
      * @const
      * @type {string}
      * Константа ERROR_MSG_WRONG_STATE определяет сообщение ошибки, которая может произойти
      * в случае запроса на датчик когда он считывает и обрабатывает другой тип значений.
      */
-    static get ERROR_MSG_WRONG_STATE() { return `ERROR>> sensor works in another mode. ClassID: ${this.name}`; }
+    static get ERROR_MSG_WRONG_STATE() { return `ERROR>> sensor works in another mode. ClassID: ${this.name || 'VL6180'}`; }
     /**
      * @const
      * @type {string}
@@ -64,7 +64,7 @@ class ClassBaseVL6180 {
      * при попытке повторно запустить тот же или другой цикл опроса. Т.Е запустить новый опрос во время работы датчика.
      */
     static get ERROR_MSG_ALREADY_WORK() { return `ERROR>> sensor is already polling. Stop it first 
-                                                to start new polling. ClassID: ${this.name}`; }
+                                                to start new polling. ClassID: ${this.name || 'VL6180'}`; }
     /**
      * @const
      * @type {Number}
@@ -244,7 +244,6 @@ class ClassBaseVL6180 {
         let startMeasTimeout = setTimeout(() => { //по окончанию этого таймаута запустится новый цикл опроса.
             this._State = this._States.WORK_ALS;
             let period = _period >= this.ALS_MIN_TIME ? _period : this.ALS_MIN_TIME; //валидация период опроса
-
             this._ALSInterval = setInterval(() => {   //этот интервал отвечает за циклический опрос датчика 
                 if (this._State !== this._States.WORK_ALS) {
                     clearInterval(this._ALSInterval);   //если  режим датчика не соответствует данному опросу, требуется остановить интервал.
