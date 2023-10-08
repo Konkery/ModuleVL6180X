@@ -4,7 +4,4 @@
 #
 #app-test*.js
 
-/js/module/1.js
-/js/module/Utility_dev.js
-/js/module/ModuleVL6180X_old.js
-/res/
+/res/garbage

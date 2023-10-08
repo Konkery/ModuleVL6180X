@@ -1,13 +1,5 @@
-const err = require('M_AppError');
-require('M_AppMath').is();
-
-//const ClassVL6180 = require('https://raw.githubusercontent.com/Nicktonious/ModuleVL6180X/fork-Nikita/js/module/ModuleVL6180.min.js').ClassVL6180;
-const ClassI2C = require('M_I2CBus');
-const ClassMiddleSensor = require('M_SensorArchitecture');
-const ClassVL6180 = require('M_VL6180');
-
 const I2Cbus = new ClassI2C();
-const bus = I2Cbus.AddBus({sda: P5, scl: P4, bitrate: 100000 }).IDbus;
+const bus = I2Cbus.AddBus({sda: B15, scl: B14, bitrate: 100000 }).IDbus;
 const sensor_props = ({
     name: "VL6180",
     type: "sensor",
@@ -18,20 +10,32 @@ const sensor_props = ({
     busTypes: ["i2c"],
     manufacturingData: {
         IDManufacturing: [
-            { "Amperka": "AMP-B072" }
+            { "Adafruit": "4328435534" }  
         ],
         IDsupplier: [
-            { "Amperka": "AMP-B072" }
+            { "Adafruit": "4328435534" }  
         ],
         HelpSens: "Proximity sensor"
     }
 });
 
-const vl = ClassVL6180.setup(sensor_props, {
+const vl6180 = ClassVL6180.setup(sensor_props, {
                             bus: bus, 
-                            pins: [] }); //некоторая инициализация класса, который реализует работу VL6180 в целом
-const ch0 = vl.GetChannel(0);    //ch0 - канал отвечабщий за освещенность
-const ch1 = vl.GetChannel(1);    //ch1 - канал отвечающий за измерения расстояния 
-        
+                            pins: [] }); 
+const ch0 = vl6180.GetChannel(0);
+const ch1 = vl6180.GetChannel(1);
+
+//Запуск опроса обоих канала
+ch0.Start();
+ch1.Start();
+
+//Вывод показаний с датчика раз в 1 сек.
+setInterval(() => {
+    if (ch0.IsUsed)
+        console.log(ch0.Value + " lux");
+    if (ch1.IsUsed)
+        console.log(ch1.Value + " mm");
+        console.log('\n');
+}, 1000);
 
 

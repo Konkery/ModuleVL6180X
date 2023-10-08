@@ -9,7 +9,7 @@
 
 Модуль реализует базовые функции датчика освещенности и расстояния. Модуль работает по протоколу I2C, разработан в соответсвии с нотацией архитектуры фреймворка EcoLite и является потомком класса [ClassMiddleSensor](https://github.com/Nicktonious/ModuleSensorArchitecture/blob/main/README.md). Количество каналов для снятия данных - 2. 
 Датчик VL6180 применяется в сценариях, где важно определение близкого приближения объектов, а не абсолютное измерение расстояния с высокой точностью. 
-
+При использовании только одного канала, датчик работает с периодичностью в 120 мс. При опросе двух каналов, датчик чередует замеры освещенности и расстояния, таким образом, периодичность опроса одного канала составляет уже 240 мс. 
 
 ### **Конструктор**
 Конструктор принимает 1 объект типа **SensorOptsType** и 1 объект типа **SensorPropsType**.
@@ -44,11 +44,11 @@ const _opts = {
 Пример программы для вывода данных раз в одну секунду:
 ```js
 //Подключение необходимых модулей
-const ClassI2CBus = require("ClassI2CBus");
+const ClassI2CBus = require("ModuleI2CBus");
 const err = require("ModuleAppError");
 const NumIs = require("ModuleAppMath");
      NumIs.is();
-const VL6180 = require("ClassVL6180");
+const VL6180 = require("ModuleVL6180");
 
 //Создание I2C шины
 let I2Cbus = new ClassI2CBus();
@@ -65,17 +65,13 @@ let sensor_props = {
     typeOutSignal: "digital",
     busType: ["i2c"],
     manufacturingData: {
-        IDManufacturing: [
-            {
-                "Amperka": "AMP-B072"
-            }
+        IDManufacturing: [                  
+            { "Adafruit": "4328435534" }    
         ],
-        IDsupplier: [
-            {
-                "Amperka": "AMP-B072"
-            }
+        IDsupplier: [                     
+            { "Adafruit": "4328435534" }    
         ],
-        HelpSens: "VL6180 Ambience and range sensor"
+        HelpSens: "VL6180 ambience and range sensor"
     }
 };
 //Создание объекта класса
@@ -91,4 +87,14 @@ setInterval(() => {
   console.log(ch0.Value + "lux");
   console.log(ch1.Value + "mm");
 }, 1000);
+```
+Результат выполнения:
+<div align='center'>
+    <img src='./res/example-1.png'>
+</div>
+### Зависимости
+
+- <mark style="background-color: lightblue">[**ModuleSensorArchitecture**](https://github.com/Nicktonious/ModuleSensorArchitecture/blob/main/README.md)</mark> под именем *ClassMiddleSensor*.
+- <mark style="background-color: lightblue">[I2Cbus](https://github.com/AlexGlgr/ModuleBaseI2CBus/blob/fork-Alexander/README.md)</mark> для работы с I2C шинами.
+
 </div>
