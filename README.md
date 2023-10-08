@@ -94,7 +94,8 @@ setInterval(() => {
 </div>
 ### Зависимости
 
-- <mark style="background-color: lightblue">[**ModuleSensorArchitecture**](https://github.com/Nicktonious/ModuleSensorArchitecture/blob/main/README.md)</mark> под именем *ClassMiddleSensor*.
-- <mark style="background-color: lightblue">[I2Cbus](https://github.com/AlexGlgr/ModuleBaseI2CBus/blob/fork-Alexander/README.md)</mark> для работы с I2C шинами.
+- <mark style="background-color: lightblue">[**ModuleSensorArchitecture**](https://github.com/Konkery/ModuleSensorArchitecture/blob/main/README.md)</mark> под именем *ClassMiddleSensor*;
+- <mark style="background-color: lightblue">[**ClassAppError**](https://github.com/Konkery/ModuleAppError/blob/main/README.md)</mark> под именем *err*;
+- <mark style="background-color: lightblue">[I2Cbus](https://github.com/Konkery/ModuleBaseI2CBus/blob/main/README.md)</mark> для работы с I2C шинами.
 
 </div>
