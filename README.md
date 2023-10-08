@@ -7,20 +7,20 @@
 # Описание
 <div style = "font-family: 'Open Sans', sans-serif; font-size: 16px; color: #555">
 
-Модуль реализует базовые функции датчика освещенности и расстояния. Модуль работает по протоколу I2C, разработан в соответсвии с нотацией архитектуры фреймворка EcoLite и является потомком класса [ClassMiddleSensor](https://github.com/Nicktonious/ModuleSensorArchitecture/blob/main/README.md). Количество каналов для снятия данных - 2. 
+Модуль реализует базовые функции датчика освещенности и расстояния. Модуль работает по протоколу I2C, разработан в соответсвии с нотацией архитектуры фреймворка EcoLite и является потомком класса [ClassMiddleSensor](https://github.com/Konkery/ModuleSensorArchitecture/blob/main/README.md). Количество каналов для снятия данных - 2. 
 Датчик VL6180 применяется в сценариях, где важно определение близкого приближения объектов, а не абсолютное измерение расстояния с высокой точностью. 
 При использовании только одного канала, датчик работает с периодичностью в 120 мс. При опросе двух каналов, датчик чередует замеры освещенности и расстояния, таким образом, периодичность опроса одного канала составляет уже 240 мс. 
 
 ### **Конструктор**
 Конструктор принимает 1 объект типа **SensorOptsType** и 1 объект типа **SensorPropsType**.
-Пример *_opts* типа [**SensorOptsType**](https://github.com/Nicktonious/ModuleSensorArchitecture/blob/main/README.md):
+Пример *_opts* типа [**SensorOptsType**](https://github.com/Konkery/ModuleSensorArchitecture/blob/main/README.md):
 ```js
 const _opts = {
     bus: i2c_bus,
     address: 0x29,
 }
 ```
-- <mark style="background-color: lightblue">bus</mark> - объект класса I2C, возвращаемый диспетчером I2C шин - [I2Cbus](https://github.com/AlexGlgr/ModuleBaseI2CBus/blob/fork-Alexander/README.md);
+- <mark style="background-color: lightblue">bus</mark> - объект класса I2C, возвращаемый диспетчером I2C шин - [I2Cbus](https://github.com/Konkery/ModuleBaseI2CBus/blob/main/README.md);
 - <mark style="background-color: lightblue">address</mark> - адрес датчика на шине;
 
 ### **Поля**
