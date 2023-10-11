@@ -1,17 +1,26 @@
+<div style = "font-family: 'Open Sans', sans-serif; font-size: 16px;>
+
 # ModuleVL6180
+<div style = "color: #555">
 ////
+</div>
 
 # Лицензия
+<div style = "color: #555">
 ////
+</div>
 
 # Описание
-<div style = "font-family: 'Open Sans', sans-serif; font-size: 16px; color: #555">
+<div style = "color: #555">
 
-Модуль реализует базовые функции датчика освещенности и расстояния. Модуль работает по протоколу I2C, разработан в соответсвии с нотацией архитектуры фреймворка EcoLite и является потомком класса [ClassMiddleSensor](https://github.com/Konkery/ModuleSensorArchitecture/blob/main/README.md). Количество каналов для снятия данных - 2. 
+Модуль преденазначен для работы с датчиком VL6180 в рамках фреймворка EcoLight. Реализует функции датчика освещенности и расстояния. Модуль работает по протоколу I2C, разработан в соответсвии с нотацией архитектуры фреймворка EcoLite и является потомком класса [ClassMiddleSensor](https://github.com/Konkery/ModuleSensorArchitecture/blob/main/README.md). Количество каналов - 2. 
 Датчик VL6180 применяется в сценариях, где важно определение близкого приближения объектов, а не абсолютное измерение расстояния с высокой точностью. 
 При использовании только одного канала, датчик работает с периодичностью в 120 мс. При опросе двух каналов, датчик чередует замеры освещенности и расстояния, таким образом, периодичность опроса одного канала составляет уже 240 мс. 
+</div>
 
-### **Конструктор**
+### Конструктор
+<div style = "color: #555">
+
 Конструктор принимает 1 объект типа **SensorOptsType** и 1 объект типа **SensorPropsType**.
 Пример *_opts* типа [**SensorOptsType**](https://github.com/Konkery/ModuleSensorArchitecture/blob/main/README.md):
 ```js
@@ -23,32 +32,44 @@ const _opts = {
 - <mark style="background-color: lightblue">bus</mark> - объект класса I2C, возвращаемый диспетчером I2C шин - [I2Cbus](https://github.com/Konkery/ModuleBaseI2CBus/blob/main/README.md);
 - <mark style="background-color: lightblue">address</mark> - адрес датчика на шине;
 
-### **Поля**
+</div>
+
+### Поля
+<div style = "color: #555">
+
 - <mark style="background-color: lightblue">_MinPeriod</mark> - минимальная частота опроса датчика - 120 мс;
 - <mark style="background-color: lightblue">_UsedCh</mark> - используемые каналы данных по нотации архитектуры фреймворка EcoLite;
 - <mark style="background-color: lightblue">_Interval</mark> - функция SetInterval для опроса датчика.
+</div>
 
-### **Методы**
-- <mark style="background-color: lightblue">Init(_sensor_props)</mark> - метод обязывающий провести инициализацию датчика настройкой необходимых для его работы полей и регистров;
-- <mark style="background-color: lightblue">ConfigureRegs()</mark> - метод конфигурирует регистры, влияющие на параметры работы датчика;
-- <mark style="background-color: lightblue">Start(_num_channel)</mark> - метод запускает циклический опрос определенного канала датчика со стандартной периодичностью;
-- <mark style="background-color: lightblue">Stop(_num_channel)</mark> - метод прекращает считывание значений с заданного канала;
-- <mark style="background-color: lightblue">PerformSingle(_num_channel)</mark> - метод запускает единичный замер с указанного канала;
-- <mark style="background-color: lightblue">UpdateValues()</mark> - метод считывает показания датчиков с регистров и приводит их к люксам и мм.
+### Методы
+<div style = "color: #555">
+
+- <mark style="background-color: lightblue">Init(_sensor_props)</mark> - проводит инициализацию датчика настройкой необходимых для его работы полей и регистров;
+- <mark style="background-color: lightblue">ConfigureRegs()</mark> - конфигурирует регистры, влияющие на параметры работы датчика;
+- <mark style="background-color: lightblue">Start(_num_channel)</mark> - запускает циклический опрос определенного канала датчика со стандартной периодичностью;
+- <mark style="background-color: lightblue">Stop(_num_channel)</mark> - прекращает считывание значений с заданного канала;
+- <mark style="background-color: lightblue">PerformSingle(_num_channel)</mark> - запускает единичный замер с указанного канала;
+- <mark style="background-color: lightblue">UpdateValues()</mark> - считывает показания датчиков с регистров и приводит их к люксам и мм.
 - <mark style="background-color: lightblue">SetAddress(addr)</mark> - аппаратно устанавливает адресс датчика на шине и поле Address.
+</div>
 
-### **Возвращаемые данные**
+### Возвращаемые данные
+<div style = "color: #555">
 Датчик предоставляет данные об освещённости окружения в люксах (lux) и расстояние до препятсвия в мм. 
+</div>
 
-### **Примеры**
+### Примеры
+<div style = "color: #555">
 Пример программы для вывода данных раз в одну секунду:
+
 ```js
 //Подключение необходимых модулей
-const ClassI2CBus = require("ModuleI2CBus");
-const err = require("ModuleAppError");
-const NumIs = require("ModuleAppMath");
+const ClassI2CBus = require("ModuleI2CBus.min.js");
+const err    = require("ModuleAppError.min.js");
+const VL6180 = require("ModuleVL6180.min.js");
+const NumIs  = require("ModuleAppMath.min.js");
      NumIs.is();
-const VL6180 = require("ModuleVL6180");
 
 //Создание I2C шины
 let I2Cbus = new ClassI2CBus();
@@ -89,13 +110,18 @@ setInterval(() => {
 }, 1000);
 ```
 Результат выполнения:
-<div align='center'>
-    <img src='./res/example-1.png'>
-</div>
-### Зависимости
+    <div align='left'>
+        <img src='./res/example-1.png'>
+    </div>
 
-- <mark style="background-color: lightblue">[**ModuleSensorArchitecture**](https://github.com/Konkery/ModuleSensorArchitecture/blob/main/README.md)</mark> под именем *ClassMiddleSensor*;
-- <mark style="background-color: lightblue">[**ClassAppError**](https://github.com/Konkery/ModuleAppError/blob/main/README.md)</mark> под именем *err*;
-- <mark style="background-color: lightblue">[I2Cbus](https://github.com/Konkery/ModuleBaseI2CBus/blob/main/README.md)</mark> для работы с I2C шинами.
+</div>
+
+### Зависимости
+<div style = "color: #555">
+
+- <mark style="background-color: lightblue">[ModuleSensorArchitecture](https://github.com/Konkery/ModuleSensorArchitecture/blob/main/README.md)</mark>
+- <mark style="background-color: lightblue">[ModuleAppError](https://github.com/Konkery/ModuleAppError/blob/main/README.md)</mark>
+
+</div>
 
 </div>
