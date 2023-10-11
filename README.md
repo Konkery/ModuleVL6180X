@@ -114,9 +114,13 @@ setInterval(() => {
     <img src='./res/example-1.png'>
 </div>
 
+</div>
+
 ### Зависимости
+<div style = "color: #555">
 
 - <mark style="background-color: lightblue">[ModuleSensorArchitecture](https://github.com/Konkery/ModuleSensorArchitecture/blob/main/README.md)</mark>
 - <mark style="background-color: lightblue">[ClassAppError](https://github.com/Konkery/ModuleAppError/blob/main/README.md)</mark>
+</div>
 
 </div>
