@@ -1,19 +1,20 @@
-<div style = "font-family: 'Open Sans', sans-serif; font-size: 16px;>
+<div style = "font-family: 'Open Sans', sans-serif; font-size: 16px">
 
-#
 # ModuleVL6180
 
 <div style = "color: #555">
-В разработке
+    <p align="center">
+    <img src="./res/logo.png" width="400" title="hover text">
+    </p>
 </div>
 
-# Лицензия
+## Лицензия
 
 <div style = "color: #555">
 В разработке
 </div>
 
-# Описание
+## Описание
 <div style = "color: #555">
 
 Модуль преденазначен для работы с датчиком VL6180 в рамках фреймворка EcoLight. Реализует функции датчика освещенности и расстояния. Модуль работает по протоколу I2C, разработан в соответсвии с нотацией архитектуры датчиков и является потомком класса [ClassMiddleSensor](https://github.com/Konkery/ModuleSensorArchitecture/blob/main/README.md). Количество каналов - 2. 
@@ -21,7 +22,7 @@
 При использовании только одного канала, датчик работает с периодичностью в 120 мс. При опросе двух каналов, датчик чередует замеры освещенности и расстояния, таким образом, периодичность опроса одного канала составляет уже 240 мс. 
 </div>
 
-### Конструктор
+## Конструктор
 <div style = "color: #555">
 
 Конструктор принимает 1 объект типа **SensorOptsType** и 1 объект типа **SensorPropsType**.
@@ -68,8 +69,8 @@ const _opts = {
 
 ```js
 //Подключение необходимых модулей
-const ClassI2CBus = require("ModuleI2CBus.min.js");
-const err    = require("ModuleAppError.min.js");
+const ClassAppError = require("ModuleAppError.min.js");
+const ClassI2CBus   = require("ModuleI2CBus.min.js");
 const VL6180 = require("ModuleVL6180.min.js");
 const NumIs  = require("ModuleAppMath.min.js");
      NumIs.is();
