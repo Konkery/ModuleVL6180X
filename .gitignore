@@ -2,4 +2,6 @@
 .vscode/*
 *.code-workspace
 #
-app-test*.js
+#app-test*.js
+
+/res/garbage
