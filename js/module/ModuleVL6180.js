@@ -71,9 +71,9 @@ const REG_ADDR = {
     INTERLEAVED_MODE__ENABLE: 0x2a3
 };
 
-class ClassVL6180 extends ClassMiddleSensor {
-    constructor(_sensor_props, _opts) {
-        ClassMiddleSensor.apply(this, [_sensor_props, _opts]);
+class ClassVL6180 extends ClassSensor {
+    constructor(_opts, _sensor_props) {
+        ClassSensor.apply(this, [_opts, _sensor_props]);
         this.Init();
         this._MinPeriod = 120;
     }
@@ -136,7 +136,7 @@ class ClassVL6180 extends ClassMiddleSensor {
             // be resolved by resetting the sensor and Arduino again.
             this._ptpOffset *= this._scaling;
         }
-        this.ConfigureRegs();
+        this.Configure();
     }
 
     PerformSingle(_ch_num) {
@@ -164,6 +164,7 @@ class ClassVL6180 extends ClassMiddleSensor {
     Start(_ch_num) {
         if (typeof _ch_num !== 'number' || _ch_num !== E.clip(_ch_num, 0, 1)) throw new Error('Invalid arg');
         this._IsChUsed[_ch_num] = true;
+        this._ChStatus[_ch_num] = 1;
         if (!this._Interval) {                         //если в данный момент не не ведется ни один опрос
             let i = 0;
             this._Interval = setInterval(() => {       //запуск интервала         
@@ -185,11 +186,14 @@ class ClassVL6180 extends ClassMiddleSensor {
     Stop(_ch_num) {
         if (typeof _ch_num === 'number' && _ch_num === E.clip(_ch_num, 0, 1)) {
             this._IsChUsed[_ch_num] = false;
+            this._ChStatus[_ch_num] = 0;
             return true;
         }
         else if (!_ch_num) {
             this._IsChUsed[0] = false;
             this._IsChUsed[1] = false;
+            this._ChStatus[0] = 0;
+            this._ChStatus[1] = 0;
             return true;
         }
         return false;
@@ -204,9 +208,9 @@ class ClassVL6180 extends ClassMiddleSensor {
         return true;
     }
     
-    ConfigureRegs() {
+    Configure() {
         // устанавливаем пин прерывания
-        this.Write8bit(REG_ADDR.SYSTEM__MODE_GPIO1, 0x30);
+        // this.Write8bit(REG_ADDR.SYSTEM__MODE_GPIO1, 0x30); NOTE
         // "Recommended : Public registers"
         // readout__averaging_sample_period = 48
         this.Write8bit(REG_ADDR.READOUT__AVERAGING_SAMPLE_PERIOD, 0x30);
@@ -230,7 +234,7 @@ class ClassVL6180 extends ClassMiddleSensor {
         this.Write8bit(REG_ADDR.SYSALS__INTERMEASUREMENT_PERIOD, 0x31);
         // als_int_mode = 4 (regAddr.ALS new sample ready interrupt); range_int_mode = 4
         // (range new sample ready interrupt)
-        this.Write8bit(REG_ADDR.SYSTEM__INTERRUPT_CONFIG_GPIO, 0x24);
+        // this.Write8bit(REG_ADDR.SYSTEM__INTERRUPT_CONFIG_GPIO, 0x24);   NOTE
         // Reset other settings to power-on defaults
         // sysrange__max_convergence_time = 49 (49 ms)
         this.Write8bit(REG_ADDR.SYSRANGE__MAX_CONVERGENCE_TIME, 0x31);
@@ -306,7 +310,9 @@ class ClassVL6180 extends ClassMiddleSensor {
         );
     }
 }
-exports = {
-    setup: (sensor_props, opts) => new ClassVL6180(sensor_props, opts),
-    REG_ADDR: REG_ADDR
-};
+// exports = {
+//     setup: (sensor_props, opts) => new ClassVL6180(sensor_props, opts),
+//     REG_ADDR: REG_ADDR
+// };
+
+exports = ClassVL6180;
