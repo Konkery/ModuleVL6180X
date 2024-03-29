@@ -149,12 +149,12 @@ class ClassVL6180 extends ClassSensor {
     }
     
     UpdateValues() {
-        if (this._IsChUsed[0]) {
+        if (this._ChStatus[0]) {
             let ambient = this.Read16bit(REG_ADDR.RESULT__ALS_VAL);
             ambient = (0.32 * ambient) / 1.01;  // перевод полученного значения в lux'ы соответственно к даташиту (section 2.13.4)
             this.Ch0_Value = ambient;
         }
-        if (this._IsChUsed[1]) {
+        if (this._ChStatus[1]) {
             let range = this.Read8bit(REG_ADDR.RESULT__RANGE_VAL);
             range = (range === 255) ? Infinity : range;
             this.Ch1_Value = range;
@@ -163,12 +163,11 @@ class ClassVL6180 extends ClassSensor {
 
     Start(_ch_num) {
         if (typeof _ch_num !== 'number' || _ch_num !== E.clip(_ch_num, 0, 1)) throw new Error('Invalid arg');
-        this._IsChUsed[_ch_num] = true;
         this._ChStatus[_ch_num] = 1;
         if (!this._Interval) {                         //если в данный момент не не ведется ни один опрос
             let i = 0;
             this._Interval = setInterval(() => {       //запуск интервала         
-                if (!(this._IsChUsed[0] || this._IsChUsed[1])) {   //если не опрашивается ни один канал
+                if ((this._ChStatus === 0 && this._ChStatus[1] == 0)) {   //если не опрашивается ни один канал
                     clearInterval(this._Interval);                 //то интервал прерывается
                     this._Interval = null;
                 }
@@ -176,8 +175,8 @@ class ClassVL6180 extends ClassSensor {
                 this.UpdateValues();
                 this.PerformSingle(i);
 
-                i = (this._IsChUsed[0] && this._IsChUsed[1]) ? +(!Boolean(i)) : i;    //черeдование индексов 0 и 1 когда одновременно работает несколько каналов 
-                i = (this._IsChUsed[i]) ? i : +(!Boolean(i));
+                i = (this._ChStatus[0] && this._ChStatus[1]) ? +(!Boolean(i)) : i;    //черeдование индексов 0 и 1 когда одновременно работает несколько каналов 
+                i = (this._ChStatus[i]) ? i : +(!Boolean(i));
             }, this._MinPeriod);                         
         }
         return true;
@@ -185,13 +184,10 @@ class ClassVL6180 extends ClassSensor {
 
     Stop(_ch_num) {
         if (typeof _ch_num === 'number' && _ch_num === E.clip(_ch_num, 0, 1)) {
-            this._IsChUsed[_ch_num] = false;
             this._ChStatus[_ch_num] = 0;
             return true;
         }
         else if (!_ch_num) {
-            this._IsChUsed[0] = false;
-            this._IsChUsed[1] = false;
             this._ChStatus[0] = 0;
             this._ChStatus[1] = 0;
             return true;
@@ -200,12 +196,12 @@ class ClassVL6180 extends ClassSensor {
     }
 
     Run(_ch_num, _opts) {
-        let opts = _opts || {};
-        if (!this._IsInited) return false;
+        // let opts = _opts || {};
+        // if (!this._IsInited) return false;
 
-        this._Channels[1]._DataRefine.SetOutLim(0, 200);
-        if (_ch_num) this.Start(_ch_num);
-        return true;
+        // this._Channels[1]._DataRefine.SetOutLim(0, 200);
+        // if (_ch_num) this.Start(_ch_num);
+        // return true;
     }
     
     Configure() {
